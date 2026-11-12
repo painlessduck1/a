@@ -3,15 +3,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+    <LinearLayout android:orientation="vertical" android:padding="24dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:paddingBottom="16dp"
             android:text="OTP Relay — forwards each incoming SMS to Telegram and Supabase." />
 
@@ -44,13 +39,18 @@
                 android:layout_weight="1" android:layout_height="wrap_content" android:text="Send test" />
         </LinearLayout>
 
-        <!-- Tap this once after install so Android never kills the app -->
         <Button android:id="@+id/batteryBtn" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="8dp"
             android:text="Disable battery optimisation (tap once)" />
 
+        <!-- Shows result from test button -->
         <TextView android:id="@+id/statusText" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:paddingTop="16dp" android:text="" />
+
+        <!-- Shows last REAL SMS received — proves receiver is firing -->
+        <TextView android:id="@+id/lastSmsText" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:paddingTop="8dp"
+            android:textColor="#888888" android:text="No SMS received yet" />
 
     </LinearLayout>
 </ScrollView>
