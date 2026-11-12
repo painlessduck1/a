@@ -8,7 +8,7 @@
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:paddingBottom="16dp"
-            android:text="OTP Relay — forwards each incoming SMS to Telegram and Supabase." />
+            android:text="OTP Relay — forwards incoming SMS to Telegram and Supabase." />
 
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
             android:text="Telegram bot token" />
@@ -31,6 +31,24 @@
         <EditText android:id="@+id/supabaseKey" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:inputType="textPassword" />
 
+        <!-- SIM filter -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:paddingTop="16dp" android:text="Forward SMS from:" />
+
+        <RadioGroup android:id="@+id/simGroup"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:paddingTop="4dp">
+            <RadioButton android:id="@+id/simAll" android:layout_width="0dp"
+                android:layout_weight="1" android:layout_height="wrap_content"
+                android:text="All SIMs" android:checked="true" />
+            <RadioButton android:id="@+id/simOne" android:layout_width="0dp"
+                android:layout_weight="1" android:layout_height="wrap_content"
+                android:text="SIM 1 only" />
+            <RadioButton android:id="@+id/simTwo" android:layout_width="0dp"
+                android:layout_weight="1" android:layout_height="wrap_content"
+                android:text="SIM 2 only" />
+        </RadioGroup>
+
         <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:paddingTop="20dp">
             <Button android:id="@+id/saveBtn" android:layout_width="0dp"
@@ -39,15 +57,21 @@
                 android:layout_weight="1" android:layout_height="wrap_content" android:text="Send test" />
         </LinearLayout>
 
+        <Button android:id="@+id/defaultSmsBtn" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="8dp"
+            android:text="Set as Default SMS App (100% reliable)" />
+
+        <Button android:id="@+id/notifBtn" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="8dp"
+            android:text="Grant Notification Access (backup method)" />
+
         <Button android:id="@+id/batteryBtn" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="8dp"
             android:text="Disable battery optimisation (tap once)" />
 
-        <!-- Shows result from test button -->
         <TextView android:id="@+id/statusText" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:paddingTop="16dp" android:text="" />
 
-        <!-- Shows last REAL SMS received — proves receiver is firing -->
         <TextView android:id="@+id/lastSmsText" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:paddingTop="8dp"
             android:textColor="#888888" android:text="No SMS received yet" />
