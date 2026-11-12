@@ -20,6 +20,7 @@ class MainActivity : Activity() {
     private lateinit var supabaseUrl: EditText
     private lateinit var supabaseKey: EditText
     private lateinit var statusText:  TextView
+    private lateinit var lastSmsText: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +31,7 @@ class MainActivity : Activity() {
         supabaseUrl = findViewById(R.id.supabaseUrl)
         supabaseKey = findViewById(R.id.supabaseKey)
         statusText  = findViewById(R.id.statusText)
+        lastSmsText = findViewById(R.id.lastSmsText)
 
         val cfg = Relay.loadConfig(this)
         botToken.setText(cfg.botToken)
@@ -41,11 +43,11 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.testBtn).setOnClickListener { sendTest() }
         findViewById<Button>(R.id.batteryBtn).setOnClickListener { openBatterySettings() }
 
-        // Start foreground service — keeps process alive for real SMS delivery
+        // Start foreground service
         try {
             startForegroundService(Intent(this, KeepAliveService::class.java))
         } catch (e: Exception) {
-            statusText.text = "Service start failed: ${e.message}"
+            statusText.text = "Service error: ${e.message}"
         }
 
         // SMS permission
@@ -54,17 +56,25 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Show last real SMS result each time screen comes to foreground
+        val prefs = getSharedPreferences("otp_relay_prefs", MODE_PRIVATE)
+        val lastSms    = prefs.getString("last_sms", "No SMS received yet") ?: ""
+        val lastResult = prefs.getString("last_result", "") ?: ""
+        lastSmsText.text = if (lastResult.isNotBlank()) "$lastSms\n$lastResult" else lastSms
+    }
+
     private fun openBatterySettings() {
-        // User taps this manually — avoids auto-prompt crash on Xiaomi/Realme/Oppo
         try {
             startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                 data = Uri.parse("package:$packageName")
             })
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             try {
                 startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
             } catch (_: Exception) {
-                Toast.makeText(this, "Open Settings → Apps → OTP Relay → Battery → Unrestricted", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Settings → Apps → OTP Relay → Battery → Unrestricted", Toast.LENGTH_LONG).show()
             }
         }
     }
