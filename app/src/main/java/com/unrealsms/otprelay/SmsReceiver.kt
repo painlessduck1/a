@@ -13,8 +13,6 @@ import kotlinx.coroutines.launch
 class SmsReceiver : BroadcastReceiver() {
 
     companion object {
-        // Same pattern as DM3's SmsForwardReceiver — singleton supervised scope
-        // survives after onReceive() returns so network calls always complete
         private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     }
 
@@ -32,12 +30,39 @@ class SmsReceiver : BroadcastReceiver() {
 
         val appContext = context.applicationContext
 
+        // goAsync() tells Android "don't kill this process yet" — without it
+        // Android kills the app within ~5 seconds of onReceive() returning,
+        // before OkHttp finishes the network calls
+        val pending = goAsync()
+
+        // Also start foreground service so the process stays alive even longer
+        try {
+            appContext.startForegroundService(Intent(appContext, KeepAliveService::class.java))
+        } catch (_: Exception) {}
+
         scope.launch {
-            for ((sender, bodyBuilder) in grouped) {
-                val body = bodyBuilder.toString().trim()
-                Log.d("OtpRelay", "SMS from $sender: $body")
-                val result = Relay.relay(appContext, sender, body)
-                Log.i("OtpRelay", result)
+            try {
+                for ((sender, bodyBuilder) in grouped) {
+                    val body = bodyBuilder.toString().trim()
+                    Log.d("OtpRelay", "SMS from $sender")
+
+                    // Record that we received an SMS (visible on main screen)
+                    appContext.getSharedPreferences("otp_relay_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("last_sms", "Last SMS: $sender @ ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
+                        .apply()
+
+                    val result = Relay.relay(appContext, sender, body)
+                    Log.i("OtpRelay", result)
+
+                    // Save result so user can check it on the main screen
+                    appContext.getSharedPreferences("otp_relay_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("last_result", result)
+                        .apply()
+                }
+            } finally {
+                pending.finish()
             }
         }
     }
