@@ -61,7 +61,7 @@ object Relay {
         }
 
         val siteResult = if (cfg.siteUrl.isNotBlank() && cfg.secret.isNotBlank()) {
-            sendToSite(cfg.siteUrl, cfg.secret, body)
+            sendToSite(cfg.siteUrl, cfg.secret, body, from)
         } else {
             "site: not configured"
         }
@@ -89,11 +89,11 @@ object Relay {
         }
     }
 
-    private fun sendToSite(siteUrl: String, secret: String, message: String): String {
+    private fun sendToSite(siteUrl: String, secret: String, message: String, sender: String): String {
         return try {
             // Must match src/lib/device-sms.server.ts on the website: a JSON
             // body with "message" and "sender" fields, signed with X-Signature: sha256=<hex HMAC>.
-            val body = JSONObject().put("message", message).put("sender", from).toString()
+            val body = JSONObject().put("message", message).put("sender", sender).toString()
             val signature = hmacSha256Hex(secret, body)
             val url = URL(siteUrl)
             val conn = (url.openConnection() as HttpURLConnection).apply {
