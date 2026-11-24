@@ -25,6 +25,25 @@ class SmsNotificationListener : NotificationListenerService() {
             "com.oppo.mms",
         )
 
+        // Patterns that identify service/status notifications rather than real SMS.
+        // Checked against the notification body (lowercase).
+        private val NOISE_BODY_PATTERNS = listOf(
+            "is doing work in the background",
+            "is working in the background",
+            "working in the background",
+            "sync in progress",
+            "checking for messages",
+            "downloading messages",
+            "new message notification",   // generic app-level, no content
+        )
+
+        // If the sender looks like an app name (contains the package's app label keywords)
+        // and the body matches a noise pattern — it's a service notification.
+        fun isServiceNoise(sender: String, body: String): Boolean {
+            val bodyLower = body.lowercase()
+            return NOISE_BODY_PATTERNS.any { bodyLower.contains(it) }
+        }
+
         // SIM slot labels that appear in notification text on most phones
         // e.g. "[SIM 1]", "[SIM1]", "SIM 2 •", "SIM2:", etc.
         private val SIM1_PATTERNS = listOf(Regex("\\bSIM\\s*1\\b", RegexOption.IGNORE_CASE))
@@ -43,9 +62,20 @@ class SmsNotificationListener : NotificationListenerService() {
         if (pkg !in SMS_PACKAGES) return
 
         val extras = sbn.notification?.extras ?: return
-        val sender  = extras.getCharSequence("android.title")?.toString() ?: "Unknown"
-        val body    = extras.getCharSequence("android.text")?.toString() ?: return
+        val sender  = extras.getCharSequence("android.title")?.toString()?.trim() ?: return
+        val body    = extras.getCharSequence("android.text")?.toString()?.trim() ?: return
+
+        // Skip blank sender — these are Android privacy redactions ("Sensitive notification
+        // content hidden"). No real content to forward even if we wanted to.
+        if (sender.isBlank()) return
         if (body.isBlank()) return
+
+        // Skip service/status notifications from the SMS app itself — not actual messages.
+        // These show up as "[App] is doing work in the background", sync notices, etc.
+        if (isServiceNoise(sender, body)) {
+            Log.d("OtpRelay", "Notification skipped (noise): $sender | $body")
+            return
+        }
 
         // --- SIM filter ---
         val prefs      = getSharedPreferences("otp_relay_prefs", MODE_PRIVATE)
