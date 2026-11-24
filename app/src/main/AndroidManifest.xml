@@ -63,25 +63,22 @@
             </intent-filter>
         </receiver>
 
-        <!-- SMS broadcast receiver — works as default SMS app AND as fallback -->
-        <receiver
-            android:name=".SmsReceiver"
-            android:exported="true"
-            android:permission="android.permission.BROADCAST_SMS">
-            <!-- SMS_DELIVER: sent ONLY to the default SMS app — most reliable path -->
-            <intent-filter android:priority="999">
-                <action android:name="android.provider.Telephony.SMS_DELIVER" />
-            </intent-filter>
-        </receiver>
-
+        <!-- SMS broadcast receiver — single block required; multiple <receiver> for same
+             class is rejected by the manifest merger. All three intent-filters live here.
+             SMS_DELIVER is protected at the platform level (only sent to default SMS app)
+             without needing android:permission on the receiver element. -->
         <receiver
             android:name=".SmsReceiver"
             android:exported="true">
-            <!-- SMS_RECEIVED: broadcast to all apps — fallback when not default -->
+            <!-- SMS_DELIVER: sent ONLY to the default SMS app — primary path -->
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+            <!-- SMS_RECEIVED: broadcast to all apps — fallback when not default SMS app -->
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
-            <!-- MMS delivery when default SMS app -->
+            <!-- WAP_PUSH_DELIVER: MMS delivery when default SMS app -->
             <intent-filter>
                 <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
                 <data android:mimeType="application/vnd.wap.mms-message" />
