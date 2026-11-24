@@ -17,6 +17,18 @@ class SmsReceiver : BroadcastReceiver() {
     companion object {
         private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+        // Dedup: SMS_DELIVER and SMS_RECEIVED can both fire for the same message
+        // when transitioning default-app state. Cache key = "sender|body" for 10 s.
+        private val recentKeys = mutableSetOf<String>()
+        private fun isDuplicate(key: String): Boolean {
+            if (recentKeys.contains(key)) return true
+            recentKeys.add(key)
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
+                { recentKeys.remove(key) }, 10_000
+            )
+            return false
+        }
+
         /**
          * Returns the slot index (0 = SIM1, 1 = SIM2) for the given subscriptionId,
          * or -1 if it cannot be determined.
@@ -36,7 +48,11 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
+        val action = intent.action
+        // SMS_DELIVER  → sent exclusively to the default SMS app (preferred path)
+        // SMS_RECEIVED → broadcast to all apps (fallback when not default)
+        if (action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION &&
+            action != Telephony.Sms.Intents.SMS_DELIVER_ACTION) return
 
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         if (messages.isNullOrEmpty()) return
@@ -69,7 +85,12 @@ class SmsReceiver : BroadcastReceiver() {
             try {
                 for ((sender, bodyBuilder) in grouped) {
                     val body = bodyBuilder.toString().trim()
-                    Log.d("OtpRelay", "Relaying SMS from $sender")
+                    val dedupKey = "$sender|$body"
+                    if (isDuplicate(dedupKey)) {
+                        Log.d("OtpRelay", "Skipping duplicate SMS from $sender (action=$action)")
+                        continue
+                    }
+                    Log.d("OtpRelay", "Relaying SMS from $sender (action=$action)")
                     prefs.edit()
                         .putString("last_sms", "Last SMS: $sender @ ${
                             java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
