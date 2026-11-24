@@ -66,11 +66,22 @@
         <!-- SMS broadcast receiver — works as default SMS app AND as fallback -->
         <receiver
             android:name=".SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <!-- SMS_DELIVER: sent ONLY to the default SMS app — most reliable path -->
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".SmsReceiver"
             android:exported="true">
+            <!-- SMS_RECEIVED: broadcast to all apps — fallback when not default -->
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
-            <!-- Required for MMS when default SMS app -->
+            <!-- MMS delivery when default SMS app -->
             <intent-filter>
                 <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
                 <data android:mimeType="application/vnd.wap.mms-message" />
