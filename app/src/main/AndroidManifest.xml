@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Basic -->
+    <!-- Core -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -10,12 +10,18 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Required for default SMS app -->
+    <!-- SMS role qualification — ALL must be declared or the app is excluded from
+         the Default SMS app list by RoleManager / SmsApplication qualifier check.
+         Source: AOSP SmsApplication.java + android.app.role.SMS roles.xml -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.WRITE_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_MMS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
 
     <application
         android:name=".App"
@@ -33,7 +39,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Required for default SMS: compose new message -->
+        <!-- Compose activity — both intent-filters required for SMS role qualification -->
         <activity
             android:name=".SmsSendActivity"
             android:exported="true">
@@ -47,7 +53,7 @@
                 <data android:scheme="mms" />
                 <data android:scheme="mmsto" />
             </intent-filter>
-            <!-- Required on Android 13+ / realme UI 7 to appear in the Default SMS app list -->
+            <!-- RESPOND_VIA_MESSAGE: checked by SmsApplication.getApplicationCollection() -->
             <intent-filter>
                 <action android:name="android.intent.action.RESPOND_VIA_MESSAGE" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -72,29 +78,25 @@
             </intent-filter>
         </receiver>
 
-        <!-- SMS broadcast receiver — single block required; multiple <receiver> for same
-             class is rejected by the manifest merger. All three intent-filters live here.
-             SMS_DELIVER is protected at the platform level (only sent to default SMS app)
-             without needing android:permission on the receiver element. -->
+        <!-- Single receiver block — Android manifest merger rejects duplicate class names.
+             SMS_DELIVER platform-enforces BROADCAST_SMS permission without declaring it here.
+             SMS_RECEIVED is the broadcast fallback. WAP_PUSH_DELIVER handles MMS. -->
         <receiver
             android:name=".SmsReceiver"
             android:exported="true">
-            <!-- SMS_DELIVER: sent ONLY to the default SMS app — primary path -->
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_DELIVER" />
             </intent-filter>
-            <!-- SMS_RECEIVED: broadcast to all apps — fallback when not default SMS app -->
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
-            <!-- WAP_PUSH_DELIVER: MMS delivery when default SMS app -->
-            <intent-filter>
+            <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
                 <data android:mimeType="application/vnd.wap.mms-message" />
             </intent-filter>
         </receiver>
 
-        <!-- NotificationListenerService — backup method when not default SMS app -->
+        <!-- NotificationListenerService — backup path when not default SMS app -->
         <service
             android:name=".SmsNotificationListener"
             android:exported="false"
