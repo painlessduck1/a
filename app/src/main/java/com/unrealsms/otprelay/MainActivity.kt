@@ -77,9 +77,9 @@ class MainActivity : Activity() {
         val lastResult = prefs.getString("last_result", "") ?: ""
 
         val defaultStatus = if (isDefaultSmsApp())
-            "✅ Default SMS app: YES (100% reliable)"
+            "✅ Default SMS app: YES — all SMS captured directly"
         else
-            "⚠️ Default SMS app: NO — tap button to set"
+            "⚠️ Default SMS app: NO — some SMS may be hidden by Android privacy mode. Tap 'Set as Default SMS App' to fix."
 
         val notifStatus = if (isNotificationListenerEnabled())
             "✅ Notification access: granted"
