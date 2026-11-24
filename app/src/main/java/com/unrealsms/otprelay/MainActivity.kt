@@ -135,19 +135,81 @@ class MainActivity : Activity() {
         }
     }
 
+    // Timestamp when we fired the RoleManager intent — used to detect instant-dismiss
+    private var roleIntentFiredAt = 0L
+
     private fun requestDefaultSmsApp() {
+        if (isDefaultSmsApp()) {
+            Toast.makeText(this, "Already the default SMS app.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Layer 1: RoleManager (Android 10+, standard path)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val rm = getSystemService(RoleManager::class.java)
-            if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_SMS) && !rm.isRoleHeld(RoleManager.ROLE_SMS)) {
-                startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_SMS), 42)
-            } else {
-                Toast.makeText(this, "Already default SMS app!", Toast.LENGTH_SHORT).show()
+            if (rm != null && rm.isRoleAvailable(RoleManager.ROLE_SMS)) {
+                try {
+                    roleIntentFiredAt = System.currentTimeMillis()
+                    startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_SMS), REQ_DEFAULT_SMS)
+                    return
+                } catch (_: Exception) {
+                    // Role available but intent failed — fall through
+                }
             }
-        } else {
-            val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
-            intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
-            startActivity(intent)
         }
+
+        // Layer 2: ACTION_CHANGE_DEFAULT (pre-Q and OEM ROMs that block RoleManager)
+        try {
+            val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                .putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+            startActivity(intent)
+            return
+        } catch (_: Exception) {}
+
+        // Layer 3: App detail settings — always reachable, user taps "Set as default" manually
+        openAppSettings("Auto-prompt blocked. Tap 'Set as default' → 'SMS app' on the next screen.")
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_DEFAULT_SMS) return
+
+        if (isDefaultSmsApp()) {
+            Toast.makeText(this, "✅ Now the default SMS app.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Detect instant-dismiss: if onActivityResult fires within 800 ms of us launching
+        // the role intent, the system suppressed the dialog (Android 16 / realme UI 7.0
+        // blocks the role UI when certain conditions aren't met). Go straight to layer 2.
+        val elapsed = System.currentTimeMillis() - roleIntentFiredAt
+        if (elapsed < 800L) {
+            // Dialog never showed — try ACTION_CHANGE_DEFAULT
+            try {
+                val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                    .putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+                startActivity(intent)
+                return
+            } catch (_: Exception) {}
+            // Both suppressed — open app settings
+            openAppSettings("Tap 'Set as default' → 'SMS app' on the next screen.")
+        } else {
+            // User dismissed the dialog manually — remind them
+            Toast.makeText(this, "Tap 'Set as Default SMS App' again and confirm.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openAppSettings(toastMsg: String) {
+        Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show()
+        try {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+            })
+        } catch (_: Exception) {}
+    }
+
+    companion object {
+        private const val REQ_DEFAULT_SMS = 42
     }
 
     private fun isNotificationListenerEnabled(): Boolean {
