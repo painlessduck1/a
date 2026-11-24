@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace = "com.unrealsms.otprelay"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.unrealsms.otprelay"
         minSdk = 23
-        targetSdk = 35
-        versionCode = 2
-        versionName = "2.0"
+        targetSdk = 36
+        versionCode = 3
+        versionName = "3.0"
     }
 
     buildTypes {
