@@ -65,8 +65,14 @@ class MainActivity : Activity() {
             statusText.text = "Service error: ${e.message}"
         }
 
-        if (checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.RECEIVE_SMS), 1)
+        // Both needed: RECEIVE_SMS for the broadcast receiver, READ_SMS for the
+        // ContentObserver which is the guaranteed fallback path on realme UI 7.0.
+        val missing = arrayOf(
+            Manifest.permission.RECEIVE_SMS,
+            Manifest.permission.READ_SMS
+        ).filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) {
+            requestPermissions(missing.toTypedArray(), 1)
         }
     }
 
