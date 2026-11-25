@@ -17,14 +17,14 @@ class SmsReceiver : BroadcastReceiver() {
     companion object {
         private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-        // Dedup: SMS_DELIVER and SMS_RECEIVED can both fire for the same message
-        // when transitioning default-app state. Cache key = "sender|body" for 10 s.
-        private val recentKeys = mutableSetOf<String>()
-        private fun isDuplicate(key: String): Boolean {
+        // Dedup: SMS_DELIVER, SMS_RECEIVED, and ContentObserver can all fire for the
+        // same message. Cache key = "sender|body", expires after 30 s.
+        internal val recentKeys = mutableSetOf<String>()
+        internal fun isDuplicate(key: String): Boolean {
             if (recentKeys.contains(key)) return true
             recentKeys.add(key)
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(
-                { recentKeys.remove(key) }, 10_000
+                { recentKeys.remove(key) }, 30_000
             )
             return false
         }
