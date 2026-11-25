@@ -49,6 +49,64 @@
                 android:text="SIM 2 only" />
         </RadioGroup>
 
+        <!-- ═══════════════════════════════════════════════════════════════════
+             Private Inbox Mode
+             When enabled, all SMS go to private_number_sms tagged with userId
+             instead of the shared own_sim_sms OTP routing table.
+             Admin assigns the user their UUID from the admin panel.
+             ═══════════════════════════════════════════════════════════════════ -->
+
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:layout_marginTop="20dp" android:layout_marginBottom="12dp"
+            android:background="#22000000" />
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Private Inbox Mode"
+            android:textStyle="bold"
+            android:textSize="13sp"
+            android:paddingBottom="4dp" />
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Enable this if admin has assigned you a dedicated rented number. SMS will go to your private inbox on the site (not the shared OTP pool)."
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:paddingBottom="8dp" />
+
+        <CheckBox android:id="@+id/privateModeCheck"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enable Private Mode (rented number → my inbox)" />
+
+        <!-- Fields shown only when private mode is on -->
+        <LinearLayout android:id="@+id/privateModeSection"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:paddingTop="12dp"
+                android:text="Your User ID (copy from admin panel → Private SMS → copy UUID button)" />
+            <EditText android:id="@+id/userId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:hint="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                android:fontFamily="monospace" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:paddingTop="12dp"
+                android:text="This SIM's own phone number (optional — stored with each SMS row)" />
+            <EditText android:id="@+id/ownPhoneNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone"
+                android:hint="+919876543210 (leave blank if unknown)" />
+
+        </LinearLayout>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+
         <LinearLayout android:orientation="horizontal" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:paddingTop="20dp">
             <Button android:id="@+id/saveBtn" android:layout_width="0dp"
